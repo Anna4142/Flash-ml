@@ -6,19 +6,19 @@ From **flash-knn** root (one level up):
 pip install -e .
 ```
 
-**Single config (L2):**
+**Single config (L2, KMeans-style):**
 ```bash
-python benchmarks/benchmark_knn_libs_v2.py --metric l2 --k 1 --B 1 --Q 1024 --N 8192 --D 128 --dtype fp16
+python benchmarks/benchmark_knn_libs_v2.py -b 1 -q 1024 -n 8192 -d 128 --k 1 --metric l2 --dtype fp16 -o benchmarks/results_knn.jsonl
 ```
 
 **Single config (cosine):**
 ```bash
-python benchmarks/benchmark_knn_libs_v2.py --metric cosine --k 1 --B 1 --Q 1024 --N 8192 --D 128 --dtype fp16
+python benchmarks/benchmark_knn_libs_v2.py -b 1 -q 1024 -n 8192 -d 128 --k 1 --metric cosine -o benchmarks/results_knn.jsonl
 ```
 
 **Sweep (L2, multiple shapes):**
 ```bash
-python benchmarks/benchmark_knn_libs_v2.py --metric l2 --k 1 --sweep --dtype fp16 --repeats 30
+python benchmarks/benchmark_knn_libs_v2.py --sweep --metric l2 --dtype fp16 --repeats 30 -o benchmarks/results_knn.jsonl
 ```
 
 **Run all (single L2, single cosine, sweep):**
@@ -26,4 +26,4 @@ python benchmarks/benchmark_knn_libs_v2.py --metric l2 --k 1 --sweep --dtype fp1
 ./benchmarks/run_all.sh
 ```
 
-Results are written to `benchmarks/results_knn_libs_v2.csv`. Compares flash-knn (repo) vs PyTorch; cuVS build/search timings included if installed.
+Results are appended to `benchmarks/results_knn.jsonl` (one JSONL line per method per shape). Compares repo (flash-knn), torch, and cuVS if installed; `correct` is set for repo vs torch.
