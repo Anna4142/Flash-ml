@@ -2,6 +2,17 @@
 
 Fast GPU ML algorithms (Triton / PyTorch). Each subdirectory is a self-contained package.
 
+### Clone and run (on a GPU machine with CUDA)
+
+```bash
+git clone https://github.com/Anna4142/Flash-ml.git
+cd Flash-ml/flash-knn
+pip install -e .
+bash benchmarks/run_all.sh
+```
+
+Results in `flash-knn/benchmarks/results_knn_libs_v2.csv`. Requires Linux + CUDA (Triton is not available on macOS).
+
 | Package      | Description |
 |-------------|-------------|
 | **[flash-knn](flash-knn/)** | Batched K-Nearest Neighbors with Triton (Euclidean & cosine). |
@@ -26,7 +37,7 @@ See [flash-knn/README.md](flash-knn/README.md) for full docs.
 
 ### Benchmark results (H200, L2, fp16)
 
-flash-knn matches PyTorch numerically (correctness checked). Sample timings from `benchmarks/benchmark_knn_libs.py` (L2 sweep, k=1):
+flash-knn matches PyTorch numerically (correctness checked). Sample timings from `benchmarks/benchmark_knn_libs_v2.py` (L2 sweep, k=1):
 
 | B | Q   | N    | flash-knn (ms) | PyTorch (ms) | speedup (torch/repo) |
 |---|-----|------|-----------------|--------------|----------------------|
@@ -37,4 +48,4 @@ flash-knn matches PyTorch numerically (correctness checked). Sample timings from
 | 2 | 1024 | 16384 | 11.62         | 0.98         | 0.085                |
 | 4 | 1024 | 16384 | 11.95         | 1.83         | 0.15                 |
 
-Run benchmarks: `cd flash-knn && pip install -e . && ./benchmarks/run_all.sh`. Results in `flash-knn/benchmarks/results_knn_libs.csv`.
+Run benchmarks: `cd flash-knn && pip install -e . && bash benchmarks/run_all.sh`. Results in `flash-knn/benchmarks/results_knn_libs_v2.csv`.
