@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flash-knn"
+version = "0.1.0"
+description = "Fast batched K-Nearest Neighbors with Triton GPU kernels"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [{ name = "Flash KNN Contributors" }]
+license = { file = "LICENSE.txt" }
+keywords = ["knn", "k-nearest", "gpu", "triton", "pytorch", "similarity"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "torch>=2.0",
+  "triton>=2.0",
+  "numpy",
+]
+
+[project.urls]
+Source = "https://github.com/flash-knn/flash-knn"
+
+[tool.setuptools]
+packages = ["flash_knn"]
+
+[tool.setuptools.package-data]
+flash_knn = ["kernels/*"]
