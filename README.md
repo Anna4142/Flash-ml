@@ -6,7 +6,7 @@ Fast GPU ML algorithms (Triton / PyTorch). Each subdirectory is a self-contained
 |-------------|-------------|
 | **[flash-knn](flash-knn/)** | Batched K-Nearest Neighbors with Triton (Euclidean & cosine). |
 
-More algorithms can be added as sibling directories later.
+Useful for semantic deduplication (e.g. SemDeDup), cluster-based sampling / diversification for LLM training (e.g. ClusterClip), and other embedding-based pipelines. More algorithms can be added as sibling directories later.
 
 ## Flash-KNN
 

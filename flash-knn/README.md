@@ -43,3 +43,10 @@ dist, idx = knn.kneighbors(x)
 - **Tiling**: tile over query dimension `N`, iterate over reference dimension `M` in chunks (`BLOCK_M`). Each Triton kernel computes a `(BLOCK_N, BLOCK_M)` block of distances or similarities.
 - **Memory**: Python loops over ref chunks and merges with `torch.topk`, so the full `(B, N, M)` distance matrix is never materialized.
 - **Self-KNN**: pass `ref=None` to use `x` as the reference set.
+
+## Use cases
+
+Flash-KNN can be used in pipelines for:
+
+- **Semantic deduplication** — [SemDeDup](https://arxiv.org/abs/2303.09540): data-efficient learning at web-scale through semantic deduplication. Use embeddings and KNN to identify and remove semantic duplicates in large web-scale datasets (e.g. LLM data preprocessing).
+- **Cluster-based sampling / diversification for LLM training** — e.g. [Balanced Data Sampling for Language Model Training with Clustering](https://arxiv.org/abs/2406.00619) (ClusterClip Sampling): cluster training data to rebalance common vs. rare samples. KNN (or clustering + nearest-neighbor queries) supports diversity-aware sampling and reweighting.
