@@ -1,6 +1,6 @@
 # Flash-KNN
 
-Fast batched K-Nearest Neighbors with Triton GPU kernels, in the same style as [flash-kmeans](https://github.com/svg-project/flash-kmeans).
+Fast batched K-Nearest Neighbors with Triton GPU kernels.
 
 - **Batched**: process `(B, N, D)` queries and `(B, M, D)` references in one go.
 - **Triton**: tiled distance computation (Euclidean and cosine) with chunked refs and top-K merge.
@@ -40,6 +40,6 @@ dist, idx = knn.kneighbors(x)
 
 ## Design
 
-- Same tiling idea as flash-kmeans assign: tile over query dimension `N`, iterate over reference dimension `M` in chunks (`BLOCK_M`).
-- Each Triton kernel computes a `(BLOCK_N, BLOCK_M)` block of distances/similarities; Python loops over ref chunks and merges with `torch.topk` so full `(B, N, M)` is never materialized.
-- Supports self-KNN by passing `ref=None` (uses `x` as reference).
+- **Tiling**: tile over query dimension `N`, iterate over reference dimension `M` in chunks (`BLOCK_M`). Each Triton kernel computes a `(BLOCK_N, BLOCK_M)` block of distances or similarities.
+- **Memory**: Python loops over ref chunks and merges with `torch.topk`, so the full `(B, N, M)` distance matrix is never materialized.
+- **Self-KNN**: pass `ref=None` to use `x` as the reference set.

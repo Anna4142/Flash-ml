@@ -6,7 +6,7 @@ Fast GPU ML algorithms (Triton / PyTorch). Each subdirectory is a self-contained
 |-------------|-------------|
 | **[flash-knn](flash-knn/)** | Batched K-Nearest Neighbors with Triton (Euclidean & cosine). |
 
-More algorithms (e.g. flash-kmeans, flash-pca) can be added as sibling directories later.
+More algorithms can be added as sibling directories later.
 
 ## Flash-KNN
 
