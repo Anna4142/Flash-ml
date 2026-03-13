@@ -7,8 +7,14 @@ from typing import Optional, Tuple
 import torch
 import triton
 
-from flash_knn.assign_euclid_triton import knn_euclid_dist_chunk_triton
-from flash_knn.assign_cosine_triton import knn_cosine_sim_chunk_triton
+from flash_knn.assign_euclid_triton import (
+    knn_euclid_dist_chunk_triton,
+    knn_euclid_dist_full_matrix_triton,
+)
+from flash_knn.assign_cosine_triton import (
+    knn_cosine_sim_chunk_triton,
+    knn_cosine_sim_full_matrix_triton,
+)
 
 
 # Max elements for full distance matrix (B*N*M) to use single topk path (~512MB fp32)
@@ -48,21 +54,9 @@ def batch_knn_euclid_triton(
     use_full_matrix = (B * N * M <= _FULL_MATRIX_MAX_ELEMS)
 
     if use_full_matrix:
-        # One big distance matrix, then single topk (fewer kernel launches + one topk)
+        # One 2D grid launch fills full (B,N,M), then single topk (matches torch strategy)
         full_dist = torch.empty((B, N, M), device=x.device, dtype=torch.float32)
-        for m_start in range(0, M, BLOCK_M):
-            m_end = min(m_start + BLOCK_M, M)
-            ref_chunk = ref[:, m_start:m_end, :]
-            ref_sq_chunk = ref_sq[:, m_start:m_end]
-            knn_euclid_dist_chunk_triton(
-                x,
-                ref_chunk,
-                x_sq,
-                ref_sq_chunk,
-                full_dist[:, :, m_start:m_end],
-                BLOCK_N=BLOCK_N,
-                BLOCK_M=BLOCK_M,
-            )
+        knn_euclid_dist_full_matrix_triton(x, ref, x_sq, ref_sq, full_dist, BLOCK_N=BLOCK_N, BLOCK_M=BLOCK_M)
         best_dist, best_idx = full_dist.topk(k, dim=-1, largest=False, sorted=True)
         return best_dist, best_idx
 
@@ -121,16 +115,7 @@ def batch_knn_cosine_triton(
 
     if use_full_matrix:
         full_sim = torch.empty((B, N, M), device=x.device, dtype=torch.float32)
-        for m_start in range(0, M, BLOCK_M):
-            m_end = min(m_start + BLOCK_M, M)
-            ref_chunk = ref[:, m_start:m_end, :]
-            knn_cosine_sim_chunk_triton(
-                x,
-                ref_chunk,
-                full_sim[:, :, m_start:m_end],
-                BLOCK_N=BLOCK_N,
-                BLOCK_M=BLOCK_M,
-            )
+        knn_cosine_sim_full_matrix_triton(x, ref, full_sim, BLOCK_N=BLOCK_N, BLOCK_M=BLOCK_M)
         best_sim, best_idx = full_sim.topk(k, dim=-1, largest=True, sorted=True)
         return best_sim, best_idx
 
