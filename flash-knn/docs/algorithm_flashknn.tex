@@ -1,0 +1,53 @@
+\documentclass[11pt]{article}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{FlashKNN: Materialization-free $k$-NN}
+\author{Flash-ml}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section*{Algorithm: FlashKNN (chunked path)}
+
+The chunked path avoids materializing the full $(B \times Q \times N)$ distance matrix by processing reference tiles and maintaining a \emph{running top-$k$} per query (online min over reference chunks).
+
+\subsection*{Squared Euclidean ($\ell^2$) distance}
+
+We use $\|q - r\|_2^2 = \|q\|_2^2 + \|r\|_2^2 - 2 q^\top r$. Batched computation is done in Triton; the merge step uses a single \texttt{topk} over the concatenation of current best and the new tile.
+
+\begin{algorithm}[H]
+\caption{FlashKNN (materialization-free assignment)}
+\begin{algorithmic}[1]
+\Require Queries $X \in \mathbb{R}^{B \times Q \times d}$, references $R \in \mathbb{R}^{B \times N \times d}$, $k$, query tile size $B_Q$, reference tile size $B_N$
+\Ensure Distances $D \in \mathbb{R}^{B \times Q \times k}$, indices $I \in \{1,\ldots,N\}^{B \times Q \times k}$
+\State Precompute row norms $\|x_{b,q}\|_2^2$ and $\|r_{b,n}\|_2^2$ (or use per-tile norms)
+\For{each query tile $X_{\mathrm{tile}}$ of size $B_Q$ (in parallel over tiles)}
+\State Initialize on-chip running state: $\widehat{D} \gets +\infty$, $\widehat{I} \gets -1$ (each of size $k$ per query)
+\State Prefetch first reference tile $R_{\mathrm{tile}}^{(0)}$ from HBM into on-chip buffer
+\For{$t \gets 0$ to $\lceil N / B_N \rceil - 1$}
+\If{$t+1 < \lceil N / B_N \rceil$}
+\State Prefetch $R_{\mathrm{tile}}^{(t+1)}$ into alternate buffer
+\EndIf
+\State Compute local (squared) distances between $X_{\mathrm{tile}}$ and $R_{\mathrm{tile}}^{(t)}$ on chip (Triton kernel: $x\_sq + ref\_sq - 2 \cdot X R^\top$)
+\State Obtain tile-local distances $\widetilde{D}$ and indices $\widetilde{I}$ for this tile
+\State \textbf{Update running state} (online top-$k$): concatenate $[\widehat{D},\, \widetilde{D}]$ and $[\widehat{I},\, \widetilde{I}]$, then \texttt{topk}$(k)$ to keep smallest $k$; write back to $\widehat{D}$, $\widehat{I}$
+\State Swap buffers
+\EndFor
+\State Write final $D$, $I$ for $X_{\mathrm{tile}}$ to HBM
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection*{Cosine similarity}
+
+For normalized $X$ and $R$, similarities are $s_{b,q,n} = x_{b,q}^\top r_{b,n}$. The same tiling applies; the running state keeps the \emph{largest} $k$ (argmax) per query, and the merge step uses \texttt{topk}$(k$, \texttt{largest=True}$)$.
+
+\subsection*{Full-matrix path}
+
+When $B \cdot Q \cdot N$ is below a threshold (e.g.\ $128 \times 10^6$), the implementation instead fills the full $(B,Q,N)$ distance/similarity matrix in \emph{one} 2D grid Triton launch, then performs a single \texttt{topk} along the last dimension. No running state is used; this matches the PyTorch \texttt{cdist} + \texttt{topk} strategy and is faster when the matrix fits in memory.
+
+\end{document}
