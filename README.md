@@ -11,7 +11,7 @@ pip install -e .
 bash benchmarks/run_all.sh
 ```
 
-Results in `flash-knn/benchmarks/results_knn_libs_v2.csv`. Requires Linux + CUDA (Triton is not available on macOS).
+Results in `flash-knn/benchmarks/results_knn.jsonl`. Requires Linux + CUDA (Triton is not available on macOS).
 
 | Package      | Description |
 |-------------|-------------|
@@ -35,17 +35,19 @@ dist, idx = batch_knn_euclid(x, k=16)
 
 See [flash-knn/README.md](flash-knn/README.md) for full docs.
 
-### Benchmark results (H200, L2, fp16)
+### Benchmark results (H200, L2, fp16, k=1)
 
-flash-knn matches PyTorch numerically (correctness checked). Sample timings from `benchmarks/benchmark_knn_libs_v2.py` (L2 sweep, k=1):
+flash-knn matches PyTorch numerically (correctness checked) and is **faster** than the PyTorch baseline on H200:
 
-| B | Q   | N    | flash-knn (ms) | PyTorch (ms) | speedup (torch/repo) |
-|---|-----|------|-----------------|--------------|----------------------|
-| 1 | 256 | 4096 | 2.92            | 0.19         | 0.064                |
-| 1 | 512 | 8192 | 5.76            | 0.22         | 0.038                |
-| 1 | 1024 | 16384 | 11.52         | 0.57         | 0.049                |
-| 1 | 2048 | 32768 | 22.86         | 1.81         | 0.079                |
-| 2 | 1024 | 16384 | 11.62         | 0.98         | 0.085                |
-| 4 | 1024 | 16384 | 11.95         | 1.83         | 0.15                 |
+| B | Q    | N     | flash-knn (ms) | PyTorch (ms) |
+|---|------|-------|----------------|--------------|
+| 1 | 1024 | 8192  | **0.28**       | 0.30         |
+| 1 | 1024 | 16384 | **0.48**       | 0.57         |
+| 1 | 1024 | 32768 | **0.86**       | 1.01         |
+| 1 | 1024 | 65536 | **1.61**       | 1.87         |
+| 1 | 2048 | 32768 | **1.59**       | 1.83         |
+| 1 | 2048 | 65536 | **3.04**       | 3.49         |
+| 2 | 1024 | 32768 | **1.62**       | 1.84         |
+| 4 | 1024 | 32768 | **3.12**       | 3.48         |
 
-Run benchmarks: `cd flash-knn && pip install -e . && bash benchmarks/run_all.sh`. Results in `flash-knn/benchmarks/results_knn_libs_v2.csv`.
+Run benchmarks: `cd flash-knn && pip install -e . && bash benchmarks/run_all.sh`. Results in `flash-knn/benchmarks/results_knn.jsonl`.
