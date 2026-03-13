@@ -87,70 +87,7 @@ def cuvs_knn_cosine(q: torch.Tensor, x: torch.Tensor, k: int):
 
 
 # ---------------------------
-# FAISS exact flat baseline
-# ---------------------------
-
-def faiss_knn_l2(q: torch.Tensor, x: torch.Tensor, k: int):
-    """
-    Exact flat FAISS GPU baseline.
-    Loops over batch dimension.
-    """
-    import faiss
-
-    B, Q, D = q.shape
-    all_d, all_i = [], []
-
-    use_gpu = torch.cuda.is_available()
-
-    for b in range(B):
-        xb = x[b].float().contiguous().cpu().numpy()
-        qb = q[b].float().contiguous().cpu().numpy()
-
-        index = faiss.IndexFlatL2(D)
-        if use_gpu:
-            res = faiss.StandardGpuResources()
-            index = faiss.index_cpu_to_gpu(res, 0, index)
-
-        index.add(xb)
-        distances, neighbors = index.search(qb, k)
-
-        all_d.append(torch.from_numpy(distances).to(q.device))
-        all_i.append(torch.from_numpy(neighbors).to(q.device))
-
-    return torch.stack(all_d, dim=0), torch.stack(all_i, dim=0)
-
-
-def faiss_knn_cosine(q: torch.Tensor, x: torch.Tensor, k: int):
-    """
-    For cosine, normalize inputs first and use inner product flat index.
-    """
-    import faiss
-
-    B, Q, D = q.shape
-    all_s, all_i = [], []
-
-    use_gpu = torch.cuda.is_available()
-
-    for b in range(B):
-        xb = x[b].float().contiguous().cpu().numpy()
-        qb = q[b].float().contiguous().cpu().numpy()
-
-        index = faiss.IndexFlatIP(D)
-        if use_gpu:
-            res = faiss.StandardGpuResources()
-            index = faiss.index_cpu_to_gpu(res, 0, index)
-
-        index.add(xb)
-        sims, neighbors = index.search(qb, k)
-
-        all_s.append(torch.from_numpy(sims).to(q.device))
-        all_i.append(torch.from_numpy(neighbors).to(q.device))
-
-    return torch.stack(all_s, dim=0), torch.stack(all_i, dim=0)
-
-
-# ---------------------------
-# Repo wrappers
+# Repo wrappers (flash-knn Triton)
 # ---------------------------
 
 def repo_knn_l2(q: torch.Tensor, x: torch.Tensor, k: int):
@@ -220,12 +157,10 @@ def run_case(B, Q, N, D, k, metric, dtype, repeats):
         repo_ms = benchmark_one(lambda: repo_knn_l2(q, x, k), repeats=repeats)
         torch_ms = benchmark_one(lambda: torch_knn_l2(q, x, k), repeats=max(3, repeats // 5))
         cuvs_res, cuvs_err = maybe_run("cuvs", lambda: benchmark_one(lambda: cuvs_knn_l2(q, x, k), repeats=max(3, repeats // 5)))
-        faiss_res, faiss_err = maybe_run("faiss", lambda: benchmark_one(lambda: faiss_knn_l2(q, x, k), repeats=max(3, repeats // 5)))
     else:
         repo_ms = benchmark_one(lambda: repo_knn_cosine(q, x, k), repeats=repeats)
         torch_ms = benchmark_one(lambda: torch_knn_cosine(q, x, k), repeats=max(3, repeats // 5))
         cuvs_res, cuvs_err = maybe_run("cuvs", lambda: benchmark_one(lambda: cuvs_knn_cosine(q, x, k), repeats=max(3, repeats // 5)))
-        faiss_res, faiss_err = maybe_run("faiss", lambda: benchmark_one(lambda: faiss_knn_cosine(q, x, k), repeats=max(3, repeats // 5)))
 
     row = {
         "B": B,
@@ -241,12 +176,9 @@ def run_case(B, Q, N, D, k, metric, dtype, repeats):
         "repo_ms": repo_ms,
         "torch_ms": torch_ms,
         "cuvs_ms": cuvs_res,
-        "faiss_ms": faiss_res,
         "speedup_vs_torch": torch_ms / repo_ms,
         "speedup_vs_cuvs": (cuvs_res / repo_ms) if cuvs_res is not None else None,
-        "speedup_vs_faiss": (faiss_res / repo_ms) if faiss_res is not None else None,
         "cuvs_error": cuvs_err,
-        "faiss_error": faiss_err,
     }
     return row
 

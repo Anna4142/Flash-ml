@@ -21,4 +21,4 @@ python benchmarks/benchmark_knn_libs.py --metric cosine --k 1 --B 1 --Q 1024 --N
 python benchmarks/benchmark_knn_libs.py --metric l2 --k 1 --sweep --dtype fp16 --repeats 30
 ```
 
-Results are written to `benchmarks/results_knn_libs.csv`. Compares flash-knn (repo) vs PyTorch, FAISS, and cuVS (if installed).
+Results are written to `benchmarks/results_knn_libs.csv`. Compares flash-knn (repo) vs PyTorch and cuVS (if installed).
